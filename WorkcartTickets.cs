@@ -560,7 +560,7 @@ namespace Oxide.Plugins
             public int CardPercentConditionLossPerSwipe = 25;
 
             [JsonProperty("RequiredCardSkin")]
-            public ulong RequiredCardSkin = 1978705182;
+            public ulong RequiredCardSkin = 0;
 
             [JsonProperty("CardReaderAccessLevel")]
             public int CardReaderAccessLevel = 1;

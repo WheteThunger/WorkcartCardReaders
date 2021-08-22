@@ -23,7 +23,7 @@ Default configuration:
   "EnableGlobalAuthorization": false,
   "AuthorizationGraceTimeSecondsOffWorkcart": 60.0,
   "CardPercentConditionLossPerSwipe": 25,
-  "RequiredCardSkin": 1978705182,
+  "RequiredCardSkin": 0,
   "CardReaderAccessLevel": 1,
   "CardReaderPositions": [
     {
