@@ -46,7 +46,7 @@ Default configuration:
 - `EnableGlobalAuthorization` -- While `true`, swiping an acceptable keycard on one workcart authorizes you to ride any workcart. While `false`, you must swipe an acceptable keycard for each workcart individually.
 - `AuthorizationGraceTimeSecondsOffWorkcart` -- Determines the amount of time an authorized player may leave a workcart and board it again without having to swipe a keycard. While `EnableGlobalAuthorization` is `true`, the player may freely board any other workcart during this time.
 - `CardPercentConditionLossPerSwipe` (`0` - `100`) -- Determines the condition percentage that a keycard will lose when used. For example, setting this to `25` allows a brand new keycard to be used up to 4 times.
-- `RequiredCardSkin` -- Determines the skin ID that keycards must have in order to be accepted. While this value is `0`, vanilla keycards will be accepted as long as they match the access level of the card reader. While this value is non-`0`, only the skin ID is checked, and the access level does not need to match.
+- `RequiredCardSkin` -- Determines the skin ID that keycards must have in order to be accepted. While this value is `0`, only vanilla keycards will be accepted, and they must match the access level of the card reader. While this value is non-`0`, only the skin ID is checked, and the access level does not need to match.
 - `CardReaderAccessLevel` (`1` = Green, `2` = Blue, `3` = Red) -- Determines the color of the card reader. This also determines the level of keycard required if `RequiredCardSkin` is `0`.
 - `CardReaderPositions` -- This list determines how many card readers will spawn on each automated workcart, as well as their position and rotation relative to the workcart.
 

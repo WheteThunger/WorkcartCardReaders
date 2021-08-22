@@ -171,7 +171,7 @@ namespace Oxide.Plugins
             var cardItem = keycard.GetItem();
             var isCardAccepted = _pluginConfig.RequiredCardSkin != 0
                 ? cardItem.skin == _pluginConfig.RequiredCardSkin
-                : keycard.accessLevel == cardReader.accessLevel;
+                : cardItem.skin == 0 && keycard.accessLevel == cardReader.accessLevel;
 
             if (!isCardAccepted)
             {
