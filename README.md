@@ -65,6 +65,10 @@ Default configuration:
 }
 ```
 
+## Known Issues
+
+The keycard readers may disappear when the workcarts move. This is a purely cosmetic issue, meaning players can still interact with them while they are invisible. This plugin mostly mitigates the issue by causing the keycard readers to re-appear when the workcart stops, so this issue should not affect gameplay most of the time.
+
 ## Developer API
 
 #### API_HasCardReader
