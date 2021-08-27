@@ -42,32 +42,54 @@ namespace Oxide.Plugins
             _pluginInstance = this;
 
             permission.RegisterPermission(PermissionFreeRides, this);
+
+            Unsubscribe(nameof(OnEntitySpawned));
+            Unsubscribe(nameof(OnWorkcartAutomationStarted));
+            Unsubscribe(nameof(OnWorkcartAutomationStopped));
         }
 
         private void OnServerInitialized()
         {
-            if (!VerifyDependencies())
-                return;
+            CheckDependencies();
 
-            var workcartList = GetAutomatedWorkcarts();
-            if (workcartList != null)
+            if (_pluginConfig.AddToAllWorkcarts)
             {
-                foreach (var workcart in workcartList)
-                    OnWorkcartAutomationStarted(workcart);
+                foreach (var workcart in BaseNetworkable.serverEntities.OfType<TrainEngine>())
+                    AddCardReader(workcart);
+
+                Subscribe(nameof(OnEntitySpawned));
+            }
+            else if (_pluginConfig.AddToAutomatedWorkcarts)
+            {
+                var workcartList = GetAutomatedWorkcarts();
+                if (workcartList != null)
+                {
+                    foreach (var workcart in workcartList)
+                        AddCardReader(workcart);
+                }
+
+                Subscribe(nameof(OnWorkcartAutomationStarted));
+                Subscribe(nameof(OnWorkcartAutomationStopped));
             }
         }
 
         private void Unload()
         {
-            var workcartList = GetAutomatedWorkcarts();
-            if (workcartList != null)
-            {
-                foreach (var workcart in workcartList)
-                    OnWorkcartAutomationStopped(workcart);
-            }
+            foreach (var workcart in BaseNetworkable.serverEntities.OfType<TrainEngine>())
+                WorkcartCardReader.RemoveFromWorkcart(workcart);
 
             _pluginConfig = null;
             _pluginInstance = null;
+        }
+
+        private void OnEntitySpawned(TrainEngine workcart)
+        {
+            // Delay to give other plugins a chance to save the id in order to block the hook.
+            NextTick(() =>
+            {
+                if (workcart != null)
+                    AddCardReader(workcart);
+            });
         }
 
         // This hook is exposed by plugin: Automated Workcarts (AutomaredWorkcarts).
@@ -216,15 +238,13 @@ namespace Oxide.Plugins
 
         #region Dependencies
 
-        private bool VerifyDependencies()
+        private void CheckDependencies()
         {
-            if (AutomatedWorkcarts == null)
-            {
-                _pluginInstance.LogError("AutomatedWorkcarts is not loaded, get it at http://umod.org");
-                return false;
-            }
+            if (_pluginConfig.AddToAllWorkcarts)
+                return;
 
-            return true;
+            if (_pluginConfig.AddToAutomatedWorkcarts && AutomatedWorkcarts == null)
+                LogError("AutomatedWorkcarts is not loaded, get it at http://umod.org. If you don't intend to use this plugin with Automated Workcarts, then set \"AddToAutomatedWorkcarts\" to false in the config and you will no longer see this message.");
         }
 
         private TrainEngine[] GetAutomatedWorkcarts()
@@ -235,6 +255,19 @@ namespace Oxide.Plugins
         #endregion
 
         #region API
+
+        private bool API_AddCardReader(TrainEngine workcart)
+        {
+            if (WorkcartCardReader.GetForWorkcart(workcart) != null)
+                return true;
+
+            return AddCardReader(workcart);
+        }
+
+        private void API_RemoveCardReader(TrainEngine workcart)
+        {
+            WorkcartCardReader.RemoveFromWorkcart(workcart);
+        }
 
         private bool API_HasCardReader(TrainEngine workcart)
         {
@@ -327,12 +360,13 @@ namespace Oxide.Plugins
 
         #region Helper Methods
 
-        private static void AddCardReader(TrainEngine workcart)
+        private static bool AddCardReader(TrainEngine workcart)
         {
             if (AddCardReaderWasBlocked(workcart))
-                return;
+                return false;
 
             WorkcartCardReader.AddToWorkcart(workcart);
+            return true;
         }
 
         private static CardReader CreateCardReader(TrainEngine workcart, Vector3 position, Quaternion rotation)
@@ -547,6 +581,12 @@ namespace Oxide.Plugins
 
         private class Configuration : SerializableConfiguration
         {
+            [JsonProperty("AddToAllWorkcarts")]
+            public bool AddToAllWorkcarts = false;
+
+            [JsonProperty("AddToAutomatedWorkcarts")]
+            public bool AddToAutomatedWorkcarts = true;
+
             [JsonProperty("AllowedSecondsToSwipeBeforeEject")]
             public float AllowedSecondsToSwipeBeforeEject = 10;
 

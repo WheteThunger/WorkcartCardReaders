@@ -1,17 +1,23 @@
 ## Features
 
-- Adds keycard readers to automated workcarts
-- Players must swipe an acceptable keycard in order to ride
+- Adds keycard readers to workcarts (intended for automated workcarts)
+- Requires players to swipe an acceptable keycard in order to ride
 - Ejects players who do not swipe within a short period of time
 - Can be configured to use vanilla keycards or keycards with custom skins
 
-## Required Plugins
+## Use cases
 
-- [Automated Workcarts](https://umod.org/plugins/automated-workcarts) -- Card readers are added only to workcarts that are automated via that plugin.
+#### Use case #1: Integrate with Automated Workcarts (default)
+
+If you are using the [Automated Workcarts](https://umod.org/plugins/automated-workcarts) plugin to add NPC conductors to workcarts, this plugin can be used to add card readers to only those workcarts. This is achieved by setting the `AddToAutomatedWorkcarts` configuration option to `true` (default).
+
+#### Use case #2: Custom automated workcarts
+
+If you are using a custom plugin to automate workcarts, that plugin can either use this plugin's API to add card readers to individual workcarts, or if you are automating all workcarts, then you can simply set the `AddToAllWorkcarts` configuration option to `true` to make all workcarts receive card readers.
 
 ## Permissions
 
-- `workcartcardreaders.freerides` -- Allows the player to get free rides from automated workcarts without swiping a keycard.
+- `workcartcardreaders.freerides` -- Allows the player to board workcarts without having to swipe a keycard.
 
 ## Configuration
 
@@ -19,6 +25,8 @@ Default configuration:
 
 ```json
 {
+  "AddToAllWorkcarts": false,
+  "AddToAutomatedWorkcarts": true,
   "AllowedSecondsToSwipeBeforeEject": 10.0,
   "EnableGlobalAuthorization": false,
   "AuthorizationGraceTimeSecondsOffWorkcart": 60.0,
@@ -42,13 +50,15 @@ Default configuration:
 }
 ```
 
+- `AddToAllWorkcarts` (`true` or `false`) -- While `true`, all workcarts will receive card readers. This is only recommended if you are using a custom plugin to automate workcarts and you are automating all of them.
+- `AddToAutomatedWorkcarts` (`true` or `false`) -- While `true`, only workcarts automated via the [Automated Workcarts](https://umod.org/plugins/automated-workcarts) plugin will receive card readers. This is the default behavior of the plugin.
 - `AllowedSecondsToSwipeBeforeEject` -- Determines the amount of time an unauthorized player has to swipe an acceptable keycard before being ejected from the workcart.
-- `EnableGlobalAuthorization` -- While `true`, swiping an acceptable keycard on one workcart authorizes you to ride any workcart. While `false`, you must swipe an acceptable keycard for each workcart individually.
+- `EnableGlobalAuthorization` (`true` or `false`) -- While `true`, swiping an acceptable keycard on one workcart authorizes you to ride any workcart. While `false`, you must swipe an acceptable keycard for each workcart individually.
 - `AuthorizationGraceTimeSecondsOffWorkcart` -- Determines the amount of time an authorized player may leave a workcart and board it again without having to swipe a keycard. While `EnableGlobalAuthorization` is `true`, the player may freely board any other workcart during this time.
 - `CardPercentConditionLossPerSwipe` (`0` - `100`) -- Determines the condition percentage that a keycard will lose when used. For example, setting this to `25` allows a brand new keycard to be used up to 4 times.
 - `RequiredCardSkin` -- Determines the skin ID that keycards must have in order to be accepted. While this value is `0`, only vanilla keycards will be accepted, and they must match the access level of the card reader. While this value is non-`0`, only the skin ID is checked, and the access level does not need to match.
 - `CardReaderAccessLevel` (`1` = Green, `2` = Blue, `3` = Red) -- Determines the color of the card reader. This also determines the level of keycard required if `RequiredCardSkin` is `0`.
-- `CardReaderPositions` -- This list determines how many card readers will spawn on each automated workcart, as well as their position and rotation relative to the workcart.
+- `CardReaderPositions` -- This list determines how many card readers will spawn on each workcart, as well as their position and rotation relative to the workcart.
 
 ## Localization
 
@@ -67,9 +77,26 @@ Default configuration:
 
 ## Known Issues
 
-The keycard readers may disappear when the workcarts move. This is a purely cosmetic issue, meaning players can still interact with them while they are invisible. This plugin mostly mitigates the issue by causing the keycard readers to re-appear when the workcart stops, so this issue should not affect gameplay most of the time.
+When a workcart moves, its keycard readers may disappear temporarily. This is a purely cosmetic issue, meaning players can still interact with the invisible keycard readers. This plugin mostly mitigates the issue by causing the keycard readers to reappear when the workcart stops, so this issue should not affect gameplay most of the time.
 
 ## Developer API
+
+#### API_AddCardReader
+
+```csharp
+bool API_AddCardReader(TrainEngine workcart)
+```
+
+- Adds one or more card readers to the workcart based on the plugin configuration.
+- Returns `true` if successful or if the workcart already had card readers, else `false` if a plugin blocked it with the `OnWorkcartCardReaderAdd` hook.
+
+#### API_RemoveCardReader
+
+```csharp
+void API_RemoveCardReader(TrainEngine workcart)
+```
+
+- Removes the card readers from the workcart.
 
 #### API_HasCardReader
 
@@ -78,14 +105,6 @@ bool API_HasCardReader(TrainEngine workcart)
 ```
 
 - Returns `true` if the workcart has one or more card readers spawned by this plugin, else returns `false`.
-
-#### API_IsPlayerAuthorized
-
-```csharp
-bool API_IsPlayerAuthorized(TrainEngine workcart, BasePlayer player)
-```
-
-- Returns `true` if the player is authorized to ride the workcart, else `false`.
 
 #### API_AuthorizePlayer
 
@@ -107,6 +126,14 @@ bool API_DeauthorizePlayer(TrainEngine workcart, BasePlayer player)
 - Returns `true` if successful, else `false` if the workcart did not have a card reader or if a plugin blocked deauthorization with the `OnAutomatedWorkcartPlayerDeauthorize` hook.
 - Note: The player may still be authorized to ride the workcart if they have the `workcartcardreaders.freerides` permission.
 
+#### API_IsPlayerAuthorized
+
+```csharp
+bool API_IsPlayerAuthorized(TrainEngine workcart, BasePlayer player)
+```
+
+- Returns `true` if the player is authorized to ride the workcart, else `false`.
+
 ## Developer Hooks
 
 #### OnWorkcartCardReaderAdd
@@ -115,7 +142,7 @@ bool API_DeauthorizePlayer(TrainEngine workcart, BasePlayer player)
 bool? OnWorkcartCardReaderAdd(TrainEngine workcart)
 ```
 
-- Called when this plugin is about to add one or more card readers to an automated workcart
+- Called when this plugin is about to add one or more card readers to a workcart
 - Returning `false` will prevent card readers from being added
 - Returning `null` will result in the default behavior
 
