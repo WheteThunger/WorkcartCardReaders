@@ -19,7 +19,7 @@ namespace Oxide.Plugins
         #region Fields
 
         [PluginReference]
-        private Plugin AutomatedWorkcarts;
+        private Plugin AutomatedWorkcarts, CargoTrainEvent;
 
         private static WorkcartCardReaders _pluginInstance;
         private static Configuration _pluginConfig;
@@ -252,6 +252,11 @@ namespace Oxide.Plugins
             return AutomatedWorkcarts?.Call("API_GetAutomatedWorkcarts") as TrainEngine[];
         }
 
+        private bool IsCargoTrain(TrainEngine workcart)
+        {
+            return CargoTrainEvent?.Call("IsTrainSpecial", workcart.net.ID)?.Equals(true) ?? false;
+        }
+
         #endregion
 
         #region API
@@ -363,6 +368,9 @@ namespace Oxide.Plugins
         private static bool AddCardReader(TrainEngine workcart)
         {
             if (AddCardReaderWasBlocked(workcart))
+                return false;
+
+            if (_pluginInstance.IsCargoTrain(workcart))
                 return false;
 
             WorkcartCardReader.AddToWorkcart(workcart);
