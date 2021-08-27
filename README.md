@@ -11,7 +11,7 @@
 
 ## Permissions
 
-- `workcarttickets.freerides` -- Allows the player to get free rides from automated workcarts without swiping a keycard.
+- `workcartcardreaders.freerides` -- Allows the player to get free rides from automated workcarts without swiping a keycard.
 
 ## Configuration
 
@@ -105,7 +105,7 @@ bool API_DeauthorizePlayer(TrainEngine workcart, BasePlayer player)
 
 - Deauthorizes the player from the specified workcart.
 - Returns `true` if successful, else `false` if the workcart did not have a card reader or if a plugin blocked deauthorization with the `OnAutomatedWorkcartPlayerDeauthorize` hook.
-- Note: The player may still be authorized to ride the workcart if they have the `workcarttickets.freerides` permission.
+- Note: The player may still be authorized to ride the workcart if they have the `workcartcardreaders.freerides` permission.
 
 ## Developer Hooks
 

@@ -12,19 +12,19 @@ using VLB;
 
 namespace Oxide.Plugins
 {
-    [Info("Workcart Tickets", "WhiteThunder", "0.1.0")]
-    [Description("Requires players to have tickets to ride automated workcarts.")]
-    internal class WorkcartTickets : CovalencePlugin
+    [Info("Workcart Card Readers", "WhiteThunder", "0.2.0")]
+    [Description("Adds card readers to workcarts which players must authorize on to ride.")]
+    internal class WorkcartCardReaders : CovalencePlugin
     {
         #region Fields
 
         [PluginReference]
         private Plugin AutomatedWorkcarts;
 
-        private static WorkcartTickets _pluginInstance;
+        private static WorkcartCardReaders _pluginInstance;
         private static Configuration _pluginConfig;
 
-        private const string PermissionFreeRides = "workcarttickets.freerides";
+        private const string PermissionFreeRides = "workcartcardreaders.freerides";
 
         private const string CardReaderPrefab = "assets/prefabs/io/electric/switches/cardreader.prefab";
         private const string ItemBrokenEffectPrefab = "assets/bundled/prefabs/fx/item_break.prefab";
