@@ -12,7 +12,7 @@ using VLB;
 
 namespace Oxide.Plugins
 {
-    [Info("Workcart Card Readers", "WhiteThunder", "0.2.0")]
+    [Info("Workcart Card Readers", "WhiteThunder", "0.3.0")]
     [Description("Adds card readers to workcarts which players must authorize on to ride.")]
     internal class WorkcartCardReaders : CovalencePlugin
     {
@@ -191,11 +191,9 @@ namespace Oxide.Plugins
                 return null;
 
             var cardItem = keycard.GetItem();
-            var isCardAccepted = _pluginConfig.RequiredCardSkin != 0
-                ? cardItem.skin == _pluginConfig.RequiredCardSkin
-                : cardItem.skin == 0 && keycard.accessLevel == cardReader.accessLevel;
+            var cardConfig = _pluginConfig.FindMatchingCardConfig(keycard, cardItem);
 
-            if (!isCardAccepted)
+            if (cardConfig == null)
             {
                 ChatMessage(player, Lang.ErrorCardNotAccepted);
                 Effect.server.Run(cardReader.accessDeniedEffect.resourcePath, cardReader.audioPosition.position, Vector3.up);
@@ -213,15 +211,18 @@ namespace Oxide.Plugins
             if (!AuthorizePlayer(workcart, workcartCardReader, player))
                 return false;
 
-            cardItem.conditionNormalized -= _pluginConfig.CardPercentConditionLossPerSwipe * 0.01f;
-            if (cardItem.condition <= 0.01)
+            if (cardConfig.PercentConditionLossPerSwipe > 0f)
             {
-                Effect.server.Run(ItemBrokenEffectPrefab, player, 0u, Vector3.zero, Vector3.zero);
-                cardItem.Remove();
-            }
-            else
-            {
-                cardItem.MarkDirty();
+                cardItem.conditionNormalized -= cardConfig.PercentConditionLossPerSwipe * 0.01f;
+                if (cardItem.condition <= 0.01f)
+                {
+                    Effect.server.Run(ItemBrokenEffectPrefab, player, 0u, Vector3.zero, Vector3.zero);
+                    cardItem.Remove();
+                }
+                else
+                {
+                    cardItem.MarkDirty();
+                }
             }
 
             DestroyExistingPlayerTimer(player);
@@ -587,6 +588,18 @@ namespace Oxide.Plugins
             }
         }
 
+        private class CardSettings
+        {
+            [JsonProperty("AccessLevel", DefaultValueHandling = DefaultValueHandling.Ignore)]
+            public int AccessLevel;
+
+            [JsonProperty("Skin", DefaultValueHandling = DefaultValueHandling.Ignore)]
+            public ulong Skin;
+
+            [JsonProperty("PercentConditionLossPerSwipe")]
+            public int PercentConditionLossPerSwipe;
+        }
+
         private class Configuration : SerializableConfiguration
         {
             [JsonProperty("AddToAllWorkcarts")]
@@ -604,14 +617,33 @@ namespace Oxide.Plugins
             [JsonProperty("AuthorizationGraceTimeSecondsOffWorkcart")]
             public float AuthorizationGraceTimeSecondsOffWorkcart = 60;
 
-            [JsonProperty("CardPercentConditionLossPerSwipe")]
-            public int CardPercentConditionLossPerSwipe = 25;
-
-            [JsonProperty("RequiredCardSkin")]
-            public ulong RequiredCardSkin = 0;
-
             [JsonProperty("CardReaderAccessLevel")]
             public int CardReaderAccessLevel = 1;
+
+            [JsonProperty("AcceptedCards")]
+            public CardSettings[] AcceptedCards = new CardSettings[]
+            {
+                new CardSettings
+                {
+                    AccessLevel = 1,
+                    PercentConditionLossPerSwipe = 20,
+                },
+                new CardSettings
+                {
+                    AccessLevel = 2,
+                    PercentConditionLossPerSwipe = 15,
+                },
+                new CardSettings
+                {
+                    AccessLevel = 3,
+                    PercentConditionLossPerSwipe = 10,
+                },
+                new CardSettings
+                {
+                    Skin = 1988408422,
+                    PercentConditionLossPerSwipe = 0,
+                },
+            };
 
             [JsonProperty("CardReaderPositions")]
             public PositionAndRotation[] CardReaderPositions = new PositionAndRotation[]
@@ -622,6 +654,27 @@ namespace Oxide.Plugins
                     RotationAngles = new Vector3(0, 180, 0),
                 },
             };
+
+            public CardSettings FindMatchingCardConfig(Keycard keycard, Item cardItem)
+            {
+                foreach (var cardConfig in AcceptedCards)
+                {
+                    if (cardItem.skin != 0)
+                    {
+                        // The card has a skin which must match.
+                        if (cardConfig.Skin == cardItem.skin)
+                            return cardConfig;
+                    }
+                    else if (cardConfig.AccessLevel != 0)
+                    {
+                        // The card does not have a skin but has a specified access level which must match.
+                        if (cardConfig.AccessLevel == keycard.accessLevel)
+                            return cardConfig;
+                    }
+                }
+
+                return null;
+            }
         }
 
         private Configuration GetDefaultConfig() => new Configuration();
