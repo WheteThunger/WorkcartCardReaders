@@ -3,6 +3,8 @@
 - Adds keycard readers to workcarts (intended for automated workcarts)
 - Requires players to swipe an acceptable keycard in order to ride
 - Ejects players who do not swipe within a short period of time
+- Allows a global authorization model so players don't need to swipe on each workcart
+- Allows adding static card readers anywhere on the map, when global authorization is enabled
 - Can be configured to use vanilla keycards or keycards with custom skins
 - All vanilla keycards work by default, but higher level cards can be used more times
 
@@ -18,7 +20,18 @@ If you are using a custom plugin to automate workcarts, that plugin can either u
 
 ## Permissions
 
+- `workcartcardreaders.manage` -- Allows the player to add and remove static card readers anywhere on the map.
 - `workcartcardreaders.freerides` -- Allows the player to board workcarts without having to swipe a keycard.
+
+## Commands
+
+The following commands allow managing static card readers when the plugin is configured with `EnableGlobalAuthorization: true`. Static card readers allow players to authorize prior to boarding a workcart.
+
+- `wcr.spawn` -- Permanently spawns a static card reader where you are looking.
+  - Saves the card reader's position in a data file at `oxide/data/WorkcartCardReaders/MAP_NAME.json`. Note: The file name for non-procedural maps will exclude the wipe number so that you can re-use the triggers across force wipes.
+  - The card reader will be removed on plugin unload and respawned on reload.
+- `wcr.kill` -- Permenantly removes the static card reader you are looking at.
+  - The position will be removed from the data file so that it will **not** respawn on plugin reload.
 
 ## Configuration
 
@@ -71,7 +84,7 @@ Default configuration:
 - `AddToAutomatedWorkcarts` (`true` or `false`) -- While `true`, only workcarts automated via the [Automated Workcarts](https://umod.org/plugins/automated-workcarts) plugin will receive card readers. This is the default behavior of the plugin.
 - `AllowedSecondsToSwipeBeforeEject` -- Determines the amount of time an unauthorized player has to swipe an acceptable keycard before being ejected from the workcart.
 - `EnableGlobalAuthorization` (`true` or `false`) -- While `true`, swiping an acceptable keycard on one workcart authorizes you to ride any workcart. While `false`, you must swipe an acceptable keycard for each workcart individually.
-- `AuthorizationGraceTimeSecondsOffWorkcart` -- Determines the amount of time an authorized player may leave a workcart and board it again without having to swipe a keycard. While `EnableGlobalAuthorization` is `true`, the player may freely board any other workcart during this time.
+- `AuthorizationGraceTimeSecondsOffWorkcart` -- Determines the amount of time an authorized player may leave a workcart and board it again without having to swipe a keycard. While `EnableGlobalAuthorization` is `true`, the player may freely board any other workcart during this time. Enabling this also allows privileged players to spawn static card readers anywhere in the map.
 - `RequiredCardSkin` -- Determines the skin ID that keycards must have in order to be accepted. While this value is `0`, only vanilla keycards will be accepted, and they must match the access level of the card reader. While this value is non-`0`, only the skin ID is checked, and the access level does not need to match.
 - `CardReaderAccessLevel` (`1` = Green, `2` = Blue, `3` = Red) -- Determines the color of the card reader. This does **not** affect which keycards are accepted.
 - `AcceptedCards` -- List of accepted keycards. If a keycard is swiped and matches a given card config in this list, then the player will be authorized and the card condition will be deducted accordingly.
@@ -86,6 +99,10 @@ Default configuration:
 {
   "Error.NoPermission": "You don't have permission to do that.",
   "Error.CardNotAccepted": "Error: That card is not accepted here.",
+  "Error.GlobalAuthorizationDisabled": "Error: Static card readers are not allowed while global authorizaton is disabled.",
+  "Error.NoSurface": "Error: No surface.",
+  "Error.NoCardReaderFound": "Error: No card reader found.",
+  "Error.NotMapCardReader": "Error: Not a map card reader.",
   "Warning.SwipeRequired": "You have <color=#f30>{0}</color> seconds to swipe a workcart pass.",
   "Success.AuthorizedToWorkcart": "You are <color=#3f3>authorized</color> to ride this workcart.",
   "Success.AuthorizedToAllWorkcarts": "You are <color=#3f3>authorized</color> to ride all workcarts.",
@@ -129,7 +146,7 @@ bool API_HasCardReader(TrainEngine workcart)
 #### API_AuthorizePlayer
 
 ```csharp
-bool API_AuthorizePlayer(TrainEngine workcart, BasePlayer player)
+bool API_AuthorizePlayer(BasePlayer player, TrainEngine workcart)
 ```
 
 - Authorizes the player to the specified workcart.
@@ -139,7 +156,7 @@ bool API_AuthorizePlayer(TrainEngine workcart, BasePlayer player)
 #### API_DeauthorizePlayer
 
 ```csharp
-bool API_DeauthorizePlayer(TrainEngine workcart, BasePlayer player)
+bool API_DeauthorizePlayer(BasePlayer player, TrainEngine workcart)
 ```
 
 - Deauthorizes the player from the specified workcart.
@@ -149,7 +166,7 @@ bool API_DeauthorizePlayer(TrainEngine workcart, BasePlayer player)
 #### API_IsPlayerAuthorized
 
 ```csharp
-bool API_IsPlayerAuthorized(TrainEngine workcart, BasePlayer player)
+bool API_IsPlayerAuthorized(BasePlayer player, TrainEngine workcart)
 ```
 
 - Returns `true` if the player is authorized to ride the workcart, else `false`.
@@ -169,7 +186,7 @@ bool? OnWorkcartCardReaderAdd(TrainEngine workcart)
 #### OnWorkcartPlayerAuthorize
 
 ```csharp
-bool? OnWorkcartPlayerAuthorize(TrainEngine workcart, BasePlayer player)
+bool? OnWorkcartPlayerAuthorize(BasePlayer player, TrainEngine workcart)
 ```
 
 - Called when a player is about to be authorized to a workcart
@@ -179,7 +196,7 @@ bool? OnWorkcartPlayerAuthorize(TrainEngine workcart, BasePlayer player)
 #### OnWorkcartPlayerAuthorized
 
 ```csharp
-void OnWorkcartPlayerAuthorized(TrainEngine workcart, BasePlayer player)
+void OnWorkcartPlayerAuthorized(BasePlayer player, TrainEngine workcart)
 ```
 
 - Called after a player has been authorized to a workcart
@@ -188,7 +205,7 @@ void OnWorkcartPlayerAuthorized(TrainEngine workcart, BasePlayer player)
 #### OnWorkcartPlayerDeauthorize
 
 ```csharp
-bool? OnWorkcartPlayerDeauthorize(TrainEngine workcart, BasePlayer player)
+bool? OnWorkcartPlayerDeauthorize(BasePlayer player, TrainEngine workcart)
 ```
 
 - Called when a player is about to be deauthorized from a workcart
@@ -198,7 +215,7 @@ bool? OnWorkcartPlayerDeauthorize(TrainEngine workcart, BasePlayer player)
 #### OnWorkcartPlayerDeauthorized
 
 ```csharp
-void OnWorkcartPlayerDeauthorized(TrainEngine workcart, BasePlayer player)
+void OnWorkcartPlayerDeauthorized(BasePlayer player, TrainEngine workcart)
 ```
 
 - Called after a player has been deauthorized from a workcart
@@ -207,7 +224,7 @@ void OnWorkcartPlayerDeauthorized(TrainEngine workcart, BasePlayer player)
 #### OnWorkcartPlayerEject
 
 ```csharp
-bool? OnWorkcartPlayerEject(TrainEngine workcart, BasePlayer player)
+bool? OnWorkcartPlayerEject(BasePlayer player, TrainEngine workcart)
 ```
 
 - Called when a player is about to be ejected from a workcart
@@ -217,7 +234,7 @@ bool? OnWorkcartPlayerEject(TrainEngine workcart, BasePlayer player)
 #### OnWorkcartEjectPositionDetermine
 
 ```csharp
-Vector3? OnWorkcartEjectPositionDetermine(TrainEngine workcart, BasePlayer player)
+Vector3? OnWorkcartEjectPositionDetermine(BasePlayer player, TrainEngine workcart)
 ```
 
 - Called when a player is about to be ejected from a workcart
@@ -227,7 +244,7 @@ Vector3? OnWorkcartEjectPositionDetermine(TrainEngine workcart, BasePlayer playe
 #### OnWorkcartPlayerEjected
 
 ```csharp
-void OnWorkcartPlayerEjected(TrainEngine workcart, BasePlayer player)
+void OnWorkcartPlayerEjected(BasePlayer player, TrainEngine workcart)
 ```
 
 - Called after a player has been ejected from a workcart
