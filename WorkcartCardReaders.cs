@@ -12,7 +12,7 @@ using VLB;
 
 namespace Oxide.Plugins
 {
-    [Info("Workcart Card Readers", "WhiteThunder", "0.4.0")]
+    [Info("Workcart Card Readers", "WhiteThunder", "0.4.1")]
     [Description("Adds card readers to workcarts which players must authorize on to ride.")]
     internal class WorkcartCardReaders : CovalencePlugin
     {
@@ -655,7 +655,7 @@ namespace Oxide.Plugins
                     _cardReaders[i] = CreateCardReader(entry.Position, entry.Rotation, baseEntity);
                 }
 
-                _previousSpeed = baseEntity.TrackSpeed;
+                _previousSpeed = baseEntity.GetTrackSpeed();
                 InvokeRandomized(CheckSpeed, 1, 1, 0.1f);
             }
 
@@ -670,7 +670,8 @@ namespace Oxide.Plugins
 
             private void CheckSpeed()
             {
-                if (baseEntity.TrackSpeed < SpeedTolerance && _previousSpeed > SpeedTolerance)
+                var trackSpeed = baseEntity.GetTrackSpeed();
+                if (trackSpeed < SpeedTolerance && _previousSpeed > SpeedTolerance)
                 {
                     foreach (var cardReader in _cardReaders)
                     {
@@ -680,7 +681,7 @@ namespace Oxide.Plugins
                     }
                 }
 
-                _previousSpeed = baseEntity.TrackSpeed;
+                _previousSpeed = trackSpeed;
             }
 
             private void OnDestroy()
